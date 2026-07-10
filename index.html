@@ -6,78 +6,140 @@
     <title>로또 제외 번호 추출기</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f5f5f5; padding: 20px; }
-        #reader { max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; padding: 10px; }
-        #result-container { margin-top: 20px; padding: 15px; background: white; border-radius: 8px; display: none; }
-        .num-box { display: inline-block; width: 30px; height: 30px; line-height: 30px; margin: 3px; background: #3498db; color: white; border-radius: 50%; font-weight: bold; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; background: #f8f9fa; padding: 20px; color: #333; }
+        h1 { font-size: 1.5rem; margin-bottom: 5px; }
+        p { color: #666; font-size: 0.9rem; margin-top: 0; margin-bottom: 20px; }
+        
+        /* 스캐너 박스 디자인 */
+        #reader { max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: none !important; }
+        #reader video { border-radius: 8px; }
+        
+        /* 결과창 디자인 */
+        #result-container { margin-top: 25px; padding: 20px; background: white; border-radius: 12px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
+        #round-info { text-align: center; margin-top: 0; color: #2c3e50; font-size: 1.3rem; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        
+        h3 { font-size: 1rem; margin-bottom: 10px; color: #555; position: relative; }
+        .section-box { background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 8px; padding: 12px; margin-bottom: 15px; }
+        
+        /* 번호 공 디자인 */
+        .num-box { display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; margin: 4px; background: #34495e; color: white; border-radius: 50%; font-weight: bold; font-size: 0.85rem; }
+        .selected { background: #2ecc71; } /* 선택된 번호: 초록색 */
+        .missing { background: #e74c3c; }  /* 없는 번호: 빨간색 */
+        .random-num { background: #e67e22; } /* 추천 조합 번호: 주황색 */
+        
+        .count-badge { float: right; background: #e74c3c; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+        
+        /* 추천 조합 행 디자인 */
+        .game-row { padding: 6px 0; border-bottom: 1px dashed #eee; font-weight: bold; color: #444; }
+        .game-row:last-child { border-bottom: none; }
+        .game-label { display: inline-block; width: 50px; color: #7f8c8d; }
+        
+        /* 새로고침 버튼 */
+        .retry-btn { display: block; width: 100%; text-align: center; background: #3498db; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        .retry-btn:hover { background: #2980b9; }
     </style>
 </head>
 <body>
 
     <h1>🎰 로또 제외 번호 추출기</h1>
-    <p>로또 용지의 QR 코드를 카메라에 보여주세요.</p>
+    <p>용지 우측 상단의 QR 코드를 비추어 주세요.</p>
     
     <div id="reader"></div>
 
     <div id="result-container">
         <h2 id="round-info"></h2>
-        <h3>선택된 번호 목록</h3>
-        <div id="selected-numbers"></div>
-        <hr>
-        <h3 style="color: #e74c3c;">선택되지 않은 번호 (총 <span id="missing-count">0</span>개)</h3>
-        <div id="missing-numbers"></div>
+        
+        <h3>이용하신 번호</h3>
+        <div class="section-box" id="selected-numbers"></div>
+        
+        <h3>나오지 않은 번호 <span class="count-badge" id="missing-count">0개</span></h3>
+        <div class="section-box" id="missing-numbers"></div>
+
+        <h3 style="color: #e67e22;">🔥 제외수 기반 무작위 추천 조합 (5게임)</h3>
+        <div class="section-box" id="random-combinations"></div>
+
+        <button class="retry-btn" onclick="location.reload();">새로 스캔하기</button>
     </div>
 
     <script>
-        // 1부터 45까지 전체 번호 세트 생성 함수
         const getAllNumbers = () => Array.from({length: 45}, (_, i) => i + 1);
 
-        // QR 코드 인식 성공 시 실행될 콜백 함수
+        // 배열에서 n개의 요소를 무작위로 추출하여 정렬하는 함수
+        function getRandomSubset(array, n) {
+            const shuffled = [...array].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, n).sort((a, b) => a - b);
+        }
+
         function onScanSuccess(decodedText) {
-            // 동행복권 URL 검증
             if (!decodedText.includes("dhlottery.co.kr")) {
                 alert("올바른 동행복권 QR 코드가 아닙니다.");
                 return;
             }
 
-            // URL에서 쿼리 스트링(v=...) 부분만 추출
-            const urlParams = new URLSearchParams(decodedText.split('?')[1]);
-            const vData = urlParams.get('v');
+            try {
+                const urlParams = new URLSearchParams(decodedText.split('?')[1]);
+                const vData = urlParams.get('v');
 
-            if (!vData) return;
+                if (!vData) return;
 
-            // 회차 및 게임 데이터 분리
-            const round = parseInt(vData.substring(0, 4)); // 앞 4자리 회차
-            const gamesData = vData.substring(4); // 나머지 게임 데이터 (예: m010203...)
+                const round = parseInt(vData.substring(0, 4)); 
+                const gamesData = vData.substring(4); 
 
-            // 2자리씩 끊어서 숫자를 추출하되, 구분자 'm'이나 'q' 등 숫자가 아닌 것은 제외
-            const matches = gamesData.match(/\d{2}/g);
-            if (!matches) return;
+                const matches = gamesData.match(/\d{2}/g);
+                if (!matches) return;
 
-            // 중복 제거를 위해 Set 객체 활용 (선택된 번호들)
-            const selectedNumbers = new Set(matches.map(num => parseInt(num)));
+                const selectedSet = new Set(matches.map(num => parseInt(num)));
+                const sortedSelected = Array.from(selectedSet).sort((a, b) => a - b);
 
-            // 없는 번호 계산 (차집합)
-            const allNumbers = getAllNumbers();
-            const missingNumbers = allNumbers.filter(num => !selectedNumbers.has(num));
+                const allNumbers = getAllNumbers();
+                const missingNumbers = allNumbers.filter(num => !selectedSet.has(num));
 
-            // 화면에 결과 렌더링
-            document.getElementById("round-info").innerText = `${round}회차 로또 분석 결과`;
-            
-            // 선택된 번호 출력
-            document.getElementById("selected-numbers").innerHTML = 
-                Array.from(selectedNumbers).sort((a,b)=>a-b).map(n => `<span class="num-box" style="background:#2ecc71;">${n}</span>`).join('');
-            
-            // 없는 번호 출력
-            document.getElementById("missing-count").innerText = missingNumbers.length;
-            document.getElementById("missing-numbers").innerHTML = 
-                missingNumbers.map(n => `<span class="num-box">${n}</span>`).join('');
+                // 결과 화면 반영
+                document.getElementById("round-info").innerText = `🎉 로또 ${round}회차 분석 결과`;
+                
+                // 1. 선택된 번호 출력
+                document.getElementById("selected-numbers").innerHTML = 
+                    sortedSelected.map(n => `<span class="num-box selected">${n}</span>`).join('');
+                
+                // 2. 없는 번호 출력
+                document.getElementById("missing-count").innerText = `${missingNumbers.length}개`;
+                document.getElementById("missing-numbers").innerHTML = 
+                    missingNumbers.map(n => `<span class="num-box missing">${n}</span>`).join('');
 
-            document.getElementById("result-container").style.display = "block";
+                // 3. 무작위 추천 조합 생성 (제외수가 6개 이상일 때만 가능)
+                if (missingNumbers.length >= 6) {
+                    let comboHtml = '';
+                    const labels = ['A 조합', 'B 조합', 'C 조합', 'D 조합', 'E 조합'];
+                    
+                    for (let i = 0; i < 5; i++) {
+                        const randomSix = getRandomSubset(missingNumbers, 6);
+                        const ballsHtml = randomSix.map(n => `<span class="num-box random-num">${n}</span>`).join('');
+                        comboHtml += `<div class="game-row"><span class="game-label">${labels[i]}</span>${ballsHtml}</div>`;
+                    }
+                    document.getElementById("random-combinations").innerHTML = comboHtml;
+                } else {
+                    document.getElementById("random-combinations").innerHTML = `<div style="color:#666; font-size:0.9rem;">제외 번호가 6개 미만이어서 조합을 생성할 수 없습니다.</div>`;
+                }
+
+                // 스캐너 종료 및 결과 노출
+                document.getElementById("result-container").style.display = "block";
+                html5QrcodeScanner.clear(); 
+                
+            } catch (error) {
+                console.error("데이터 파싱 중 오류가 발생했습니다.", error);
+            }
         }
 
-        // QR 스캐너 초기화 및 시작 (fps: 초당 프레임 수, qrbox: 스캔 테두리 크기)
-        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 15, qrbox: 250 });
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+            fps: 20, 
+            qrbox: { width: 280, height: 280 }, 
+            videoConstraints: {
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                facingMode: "environment" 
+            }
+        });
+        
         html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
