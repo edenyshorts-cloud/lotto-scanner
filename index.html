@@ -74,6 +74,11 @@
         <div class="section-box" id="random-combinations"></div>
 
         <button class="retry-btn" onclick="location.reload();">새로 스캔하기</button>
+
+        <div style="margin-top:20px; padding:12px; background:#fffbe6; border:1px dashed #e6c200; border-radius:8px; font-size:0.8rem; word-break:break-all;">
+            <strong>🔧 디버그용 원본 데이터 (번호가 이상하면 이 값을 복사해서 알려주세요)</strong>
+            <div id="debug-raw" style="margin-top:6px; color:#555;"></div>
+        </div>
     </div>
 
     <script>
@@ -90,6 +95,7 @@
         let firstRound = null;    // 최초 스캔된 회차 (표시용)
         const combinedSelectedSet = new Set(); // 두 장의 번호를 모두 합친 집합
         const perTicketNumbers = []; // 장별로 뽑힌 번호 목록 (표시용)
+        const rawVValues = []; // 디버그용: 스캔된 원본 v 파라미터 문자열
 
         let html5QrCode = null;
 
@@ -156,6 +162,8 @@
                     const urlParams = new URLSearchParams(decodedText.split('?')[1]);
                     const vData = urlParams.get('v');
                     if (!vData) return;
+
+                    rawVValues.push(vData); // 디버그용 원본 문자열 저장
 
                     const round = parseInt(vData.substring(0, 4));
                     const gamesData = vData.substring(4);
@@ -232,6 +240,11 @@
                 document.getElementById("random-combinations").innerHTML =
                     `<p style="color:#e74c3c;">제외된 번호가 6개 미만이라 조합을 만들 수 없습니다.</p>`;
             }
+
+            // 디버그용: 스캔된 원본 v 파라미터 문자열을 그대로 표시
+            document.getElementById("debug-raw").innerHTML = rawVValues
+                .map((v, idx) => `${idx + 1}번 용지: <code>${v}</code>`)
+                .join('<br>');
 
             document.getElementById("result-container").style.display = "block";
         }
