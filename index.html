@@ -103,8 +103,10 @@
         }
 
         function getRandomSubset(array, n) {
-            const shuffled = shuffleArray(array);
-            return shuffled.slice(0, n).sort((a, b) => a - b);
+            // 오름차순 정렬을 하지 않고 셔플된 순서 그대로 반환한다.
+            // (정렬을 하면 가장 작은 숫자가 항상 맨 앞에 오게 되어, 마치 특정 숫자가
+            //  자주 "시작 번호"로 몰리는 것처럼 보이는 착시가 생김 - 실제 뽑힐 확률과는 무관함)
+            return shuffleArray(array).slice(0, n);
         }
 
         // n개 중 k개를 뽑는 조합의 총 개수 (중복 없이 만들 수 있는 최대 게임 수 계산용)
@@ -291,8 +293,8 @@
                 const maxAttempts = gamesToGenerate * 300 + 500; // 무한루프 방지용 안전장치
                 while (combos.length < gamesToGenerate && attempts < maxAttempts) {
                     attempts++;
-                    const candidate = getRandomSubset(missingNumbers, 6);
-                    const key = candidate.join(',');
+                    const candidate = getRandomSubset(missingNumbers, 6); // 화면 표시용: 무작위 순서
+                    const key = [...candidate].sort((a, b) => a - b).join(','); // 중복 체크용: 정렬된 조합 기준
                     if (usedCombos.has(key)) continue;
                     usedCombos.add(key);
                     combos.push(candidate);
