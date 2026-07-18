@@ -50,7 +50,7 @@
 <body>
 
     <h1>🎰 로또 제외 번호 추출기</h1>
-    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.3 · 카메라 오류 화면 표시 추가</p>
+    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.4 · 조합별 오름차순 보조표시 추가</p>
     <p>구매한 로또 용지가 몇 장인지 먼저 선택해주세요.</p>
 
     <div id="select-container">
@@ -327,7 +327,11 @@
                 let comboHtml = '';
                 combos.forEach((nums, i) => {
                     const label = `${String.fromCharCode(65 + i)} 조합`;
-                    comboHtml += `<div class="game-row"><span class="game-label">${label}</span>${nums.map(n => `<span class="num-box random-num">${n}</span>`).join('')}</div>`;
+                    const sortedNums = [...nums].sort((a, b) => a - b);
+                    comboHtml += `<div class="game-row">
+                        <div><span class="game-label">${label}</span>${nums.map(n => `<span class="num-box random-num">${n}</span>`).join('')}</div>
+                        <div style="margin-left:56px; margin-top:4px; font-size:0.7rem; color:#999; font-weight:normal;">오름차순: ${sortedNums.join(', ')}</div>
+                    </div>`;
                 });
 
                 if (gamesToGenerate < requestedGames) {
