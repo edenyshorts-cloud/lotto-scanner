@@ -90,8 +90,20 @@
     <script>
         const getAllNumbers = () => Array.from({length: 45}, (_, i) => i + 1);
 
+        // 피셔-예이츠(Fisher–Yates) 셔플: 모든 순열이 동일한 확률로 나오는 것이 수학적으로 보장된 방식.
+        // 기존의 array.sort(() => 0.5 - Math.random()) 방식은 배열 앞쪽 원소가 결과에도
+        // 더 자주 남는 편향이 있어서(브라우저의 정렬 알고리즘 특성상), 진짜 균등한 랜덤이 아니었다.
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
         function getRandomSubset(array, n) {
-            const shuffled = [...array].sort(() => 0.5 - Math.random());
+            const shuffled = shuffleArray(array);
             return shuffled.slice(0, n).sort((a, b) => a - b);
         }
 
