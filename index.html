@@ -36,6 +36,9 @@
         .missing { background: #e74c3c; }
         .random-num { background: #e67e22; }
 
+        /* 추천 조합의 "뽑힌 순서" 번호는 작게, 아래 "오름차순" 번호가 주로 보이도록 크기를 키움 */
+        .mini-num { display: inline-block; width: 11px; height: 11px; line-height: 11px; text-align: center; margin: 2px; background: #e67e22; color: white; border-radius: 50%; font-weight: bold; font-size: 0.28rem; }
+
         .ticket-label { display: inline-block; font-size: 0.75rem; background: #7f8c8d; color: white; padding: 2px 6px; border-radius: 6px; margin-right: 6px; vertical-align: middle; }
 
         .count-badge { float: right; background: #e74c3c; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
@@ -50,7 +53,7 @@
 <body>
 
     <h1>🎰 로또 제외 번호 추출기</h1>
-    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.4 · 조합별 오름차순 보조표시 추가</p>
+    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.5 · 추천번호 축소, 오름차순 확대</p>
     <p>구매한 로또 용지가 몇 장인지 먼저 선택해주세요.</p>
 
     <div id="select-container">
@@ -329,8 +332,8 @@
                     const label = `${String.fromCharCode(65 + i)} 조합`;
                     const sortedNums = [...nums].sort((a, b) => a - b);
                     comboHtml += `<div class="game-row">
-                        <div><span class="game-label">${label}</span>${nums.map(n => `<span class="num-box random-num">${n}</span>`).join('')}</div>
-                        <div style="margin-left:56px; margin-top:4px; font-size:0.7rem; color:#999; font-weight:normal;">오름차순: ${sortedNums.join(', ')}</div>
+                        <div><span class="game-label">${label}</span>${nums.map(n => `<span class="mini-num">${n}</span>`).join('')}</div>
+                        <div style="margin-top:6px;"><span class="game-label" style="font-size:0.65rem;">오름차순</span>${sortedNums.map(n => `<span class="num-box random-num">${n}</span>`).join('')}</div>
                     </div>`;
                 });
 
