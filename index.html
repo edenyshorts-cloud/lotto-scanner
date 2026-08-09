@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 북마크/즐겨찾기로 다시 열었을 때 브라우저 캐시에 저장된 예전 버전이 뜨는 것을 막기 위한 태그 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>로또 제외 번호 추출기</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -53,7 +57,7 @@
 <body>
 
     <h1>🎰 로또 제외 번호 추출기</h1>
-    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.5 · 추천번호 축소, 오름차순 확대</p>
+    <p style="font-size:0.7rem; color:#aaa; margin-top:-16px; margin-bottom:14px;">v1.7 · 안드로이드 카메라 인식 개선</p>
     <p>구매한 로또 용지가 몇 장인지 먼저 선택해주세요.</p>
 
     <div id="select-container">
@@ -188,7 +192,20 @@
                     const minEdgeId = Math.min(viewfinderWidth, viewfinderHeight);
                     const qrboxSize = Math.floor(minEdgeId * 0.7);
                     return { width: qrboxSize, height: qrboxSize };
+                },
+                // 안드로이드 크롬은 네이티브 BarcodeDetector API를 지원함.
+                // 켜두면 순수 JS 디코더(jsQR) 대신 하드웨어 가속 디코더를 우선 사용해서
+                // 인식 속도/정확도가 크게 좋아짐 (지원 안 하는 브라우저는 자동으로 기존 방식 사용).
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
                 }
+            };
+
+            // 카메라 해상도를 명시적으로 요청 (해상도를 안 주면 기기가 임의로
+            // 낮은 해상도를 줄 수 있어 QR 패턴이 뭉개져 인식이 안 될 수 있음)
+            const videoConstraints = {
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
             };
 
             const showCameraError = (err) => {
@@ -196,25 +213,25 @@
                 document.getElementById("scan-status").innerHTML =
                     `<span style="color:#e74c3c;">📷 카메라를 열 수 없습니다.</span><br>
                      <span style="font-size:0.75rem; color:#888; word-break:break-all;">${msg}</span><br>
-                     <span style="font-size:0.75rem; color:#888;">· 카카오톡/인스타그램 등 앱 내부 브라우저라면 Safari로 직접 열어주세요.<br>· 설정 > Safari > 카메라 권한을 확인해주세요.</span>`;
+                     <span style="font-size:0.75rem; color:#888;">· 카카오톡/인스타그램 등 앱 내부 브라우저라면 Safari/Chrome으로 직접 열어주세요.<br>· 설정에서 카메라 권한을 확인해주세요.</span>`;
             };
 
-            Html5Qrcode.getCameras().then(devices => {
-                if (devices && devices.length > 0) {
-                    let cameraId = devices[devices.length - 1].id;
-                    for (let device of devices) {
-                        if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('환경')) {
-                            cameraId = device.id;
-                            break;
-                        }
-                    }
-                    html5QrCode.start({ deviceId: cameraId }, config, onScanSuccess).catch(showCameraError);
-                } else {
-                    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess).catch(showCameraError);
-                }
-            }).catch(err => {
-                // 카메라 목록 조회 자체가 실패한 경우(주로 권한 거부) -> facingMode로 한 번 더 시도
-                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess).catch(showCameraError);
+            // deviceId를 직접 골라 지정하는 대신 facingMode(exact: "environment")로 요청한다.
+            // 안드로이드는 후면 카메라가 여러 개(광각/초광각/망원)인 기기가 많은데,
+            // label 문자열로 device를 직접 고르면 초점이 잘 안 맞는 렌즈(초광각 등)가
+            // 선택되어 QR 인식이 안 되는 경우가 있었음. facingMode로 요청하면 브라우저/OS가
+            // 알아서 QR 스캔에 적합한 기본 후면 카메라를 선택해준다.
+            html5QrCode.start(
+                { facingMode: { exact: "environment" }, ...videoConstraints },
+                config,
+                onScanSuccess
+            ).catch(err => {
+                // exact 제약을 만족하는 카메라가 없는 일부 구형 기기 대비 fallback
+                html5QrCode.start(
+                    { facingMode: "environment", ...videoConstraints },
+                    config,
+                    onScanSuccess
+                ).catch(showCameraError);
             });
         }
 
