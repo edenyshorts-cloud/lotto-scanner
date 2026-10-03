@@ -183,11 +183,16 @@
         function initScanner() {
             html5QrCode = new Html5Qrcode("reader");
             const config = {
-                fps: 10,
+                fps: 15,
                 qrbox: function(viewfinderWidth, viewfinderHeight) {
                     const minEdgeId = Math.min(viewfinderWidth, viewfinderHeight);
-                    const qrboxSize = Math.floor(minEdgeId * 0.7);
+                   const qrboxSize = Math.floor(minEdgeId * 0.85);
                     return { width: qrboxSize, height: qrboxSize };
+                },
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
                 }
             };
 
